@@ -19,6 +19,7 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 ENV FLUTTER_HOME=/usr/local/flutter
 ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
 
+# FIX: Check for and remove the default 'ubuntu' user (UID 1000) so we can reuse the ID
 RUN if getent passwd ubuntu > /dev/null; then userdel -r ubuntu; fi \
     && if getent group ubuntu > /dev/null; then groupdel ubuntu; fi \
     && groupadd --gid $USER_GID $USERNAME \
