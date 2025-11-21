@@ -10,16 +10,18 @@ ENV CMDLINE_TOOLS_VERSION=11076708
 
 ENV ANDROID_HOME=/usr/local/android-sdk
 ENV FLUTTER_HOME=/usr/local/flutter
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-21
 ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}:${JAVA_HOME}/bin:${FLUTTER_HOME}/bin:${PATH}"
 
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && apt-get update \
-    && apt-get install -y --no-install-recommends sudo wget git unzip xz-utils zip libglu1-mesa \
-    && echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends -t bookworm-backports openjdk-21-jdk-headless \
+    && apt-get install -y --no-install-recommends sudo wget git unzip xz-utils zip libglu1-mesa ca-certificates curl \
+    && mkdir -p /usr/lib/jvm \
+    && wget -q https://corretto.aws/downloads/latest/amazon-corretto-21-x64-linux-jdk.tar.gz -O /tmp/java.tar.gz \
+    && tar -xzf /tmp/java.tar.gz -C /usr/lib/jvm \
+    && mv /usr/lib/jvm/amazon-corretto-21* $JAVA_HOME \
+    && rm /tmp/java.tar.gz \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     && rm -rf /var/lib/apt/lists/*
