@@ -1,47 +1,48 @@
-# Base image
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
-# Install essential tools
+ENV GRADLE_VERSION=8.11.1
+ENV ANDROID_BUILD_TOOLS_VERSION=35.0.0
+ENV ANDROID_PLATFORM_VERSION=android-35
+ENV CMDLINE_TOOLS_VERSION=11076708
+ENV JAVA_VERSION=21
+
+ENV ANDROID_HOME=/usr/local/android-sdk
+ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}:${PATH}"
+ENV GRADLE_HOME=/usr/local/gradle
+ENV PATH="${GRADLE_HOME}/gradle-${GRADLE_VERSION}/bin:${PATH}"
+ENV JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     wget \
-    git \
     curl \
+    git \
     unzip \
-    nano \
-    python3-pip \
     libglu1-mesa \
-    openjdk-17-jre \
-    openjdk-17-jdk \
+    openjdk-21-jdk-headless \
     && rm -rf /var/lib/apt/lists/*
 
-# Environment variables
-ENV ANDROID_HOME=/usr/local/android-sdk
-ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/34.0.0:${PATH}"
-ENV GRADLE_HOME=/usr/local/gradle
-ENV PATH="${GRADLE_HOME}/gradle-8.1/bin:${PATH}"
+RUN wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -q && \
+    unzip -q gradle-${GRADLE_VERSION}-bin.zip -d /usr/local/gradle && \
+    rm gradle-${GRADLE_VERSION}-bin.zip
 
-# Install Flutter
-RUN git clone https://github.com/flutter/flutter.git /usr/local/flutter
-ENV PATH="/usr/local/flutter/bin:${PATH}"
-
-# Install Gradle
-RUN wget https://services.gradle.org/distributions/gradle-8.1-bin.zip && \
-    unzip gradle-8.1-bin.zip -d /usr/local/gradle && \
-    rm gradle-8.1-bin.zip
-
-# Install Android SDK
 RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
-    wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip && \
-    unzip /tmp/cmdline-tools.zip -d ${ANDROID_HOME}/cmdline-tools && \
+    wget https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip -q -O /tmp/cmdline-tools.zip && \
+    unzip -q /tmp/cmdline-tools.zip -d ${ANDROID_HOME}/cmdline-tools && \
     rm /tmp/cmdline-tools.zip && \
     mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest && \
     yes | sdkmanager --licenses && \
-    sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+    sdkmanager "platform-tools" "platforms;${ANDROID_PLATFORM_VERSION}" "build-tools;${ANDROID_BUILD_TOOLS_VERSION}"
 
-# Install AI libraries (Coqui, TensorFlow Lite, MediaPipe, OpenAI Whisper)
-RUN pip3 install coqui-tts==0.11.0 openai-whisper tensorflow mediapipe
+RUN git clone https://github.com/flutter/flutter.git /usr/local/flutter && \
+    git config --global --add safe.directory /usr/local/flutter
+ENV PATH="/usr/local/flutter/bin:${PATH}"
 
-# Run Flutter doctor to verify installation
-RUN flutter doctor
+RUN flutter config --no-analytics && \
+    flutter precache
 
+# Проверка
+RUN flutter doctor -v && \
+    java --version && \
+    gradle --version
