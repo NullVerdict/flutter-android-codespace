@@ -4,7 +4,13 @@
     "dockerfile": "Dockerfile"
   },
   "settings": {
-    "terminal.integrated.shell.linux": "/bin/bash"
+    "terminal.integrated.profiles.linux": {
+      "Root Shell": {
+        "path": "sudo",
+        "args": ["su"]
+      }
+    },
+    "terminal.integrated.defaultProfile.linux": "Root Shell"
   },
   "extensions": [
     "Dart-Code.flutter",
