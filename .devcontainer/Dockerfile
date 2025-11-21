@@ -19,7 +19,9 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 ENV FLUTTER_HOME=/usr/local/flutter
 ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
 
-RUN groupadd --gid $USER_GID $USERNAME \
+RUN if getent passwd ubuntu > /dev/null; then userdel -r ubuntu; fi \
+    && if getent group ubuntu > /dev/null; then groupdel ubuntu; fi \
+    && groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && apt-get update && apt-get install -y sudo \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
@@ -61,5 +63,5 @@ USER $USERNAME
 RUN flutter config --no-analytics && \
     flutter precache
 
-# Проверка
+# Check
 RUN flutter doctor -v
