@@ -14,7 +14,7 @@ ENV JAVA_HOME=/usr/lib/jvm/java-21
 ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}:${JAVA_HOME}/bin:${FLUTTER_HOME}/bin:${PATH}"
 
 RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/bash \
     && apt-get update \
     && apt-get install -y --no-install-recommends sudo wget git unzip xz-utils zip libglu1-mesa ca-certificates curl \
     && mkdir -p /usr/lib/jvm \
