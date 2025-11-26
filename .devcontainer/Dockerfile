@@ -17,17 +17,20 @@ ENV GRADLE_HOME=/usr/local/gradle
 
 ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}:${JAVA_HOME}/bin:${FLUTTER_HOME}/bin:${GRADLE_HOME}/bin:${PATH}"
 
+# Added java-common to this list just to be safe, though the apt-get fix below handles it too
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/bash \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        sudo wget curl git unzip xz-utils zip libglu1-mesa ca-certificates gnupg \
+        sudo wget curl git unzip xz-utils zip libglu1-mesa ca-certificates gnupg java-common \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     && rm -rf /var/lib/apt/lists/*
 
+# FIX: Used 'apt-get install -y' instead of 'dpkg -i' to resolve dependencies automatically
 RUN wget -q https://corretto.aws/downloads/latest/amazon-corretto-${JAVA_VERSION}-x64-linux-jdk.deb -O /tmp/java.deb \
-    && dpkg -i /tmp/java.deb \
+    && apt-get update \
+    && apt-get install -y /tmp/java.deb \
     && rm /tmp/java.deb
 
 RUN mkdir -p ${GRADLE_HOME} \
