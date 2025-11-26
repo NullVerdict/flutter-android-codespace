@@ -17,17 +17,15 @@ ENV GRADLE_HOME=/usr/local/gradle
 
 ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}:${JAVA_HOME}/bin:${FLUTTER_HOME}/bin:${GRADLE_HOME}/bin:${PATH}"
 
-# Added java-common to this list just to be safe, though the apt-get fix below handles it too
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/bash \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         sudo wget curl git unzip xz-utils zip libglu1-mesa ca-certificates gnupg java-common \
-    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     && rm -rf /var/lib/apt/lists/*
 
-# FIX: Used 'apt-get install -y' instead of 'dpkg -i' to resolve dependencies automatically
 RUN wget -q https://corretto.aws/downloads/latest/amazon-corretto-${JAVA_VERSION}-x64-linux-jdk.deb -O /tmp/java.deb \
     && apt-get update \
     && apt-get install -y /tmp/java.deb \
@@ -39,8 +37,7 @@ RUN mkdir -p ${GRADLE_HOME} \
     && mv /tmp/gradle-${GRADLE_VERSION}/* ${GRADLE_HOME}/ \
     && rm -rf /tmp/gradle*
 
-RUN mkdir -p ${ANDROID_HOME} ${FLUTTER_HOME} \
-    && chown -R $USERNAME:$USERNAME ${ANDROID_HOME} ${FLUTTER_HOME} ${GRADLE_HOME}
+RUN mkdir -p ${ANDROID_HOME} ${FLUTTER_HOME}
 
 USER $USERNAME
 
@@ -48,11 +45,18 @@ RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
     && wget -q https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS_VERSION}_latest.zip -O /tmp/cmdline-tools.zip \
     && unzip -q /tmp/cmdline-tools.zip -d ${ANDROID_HOME}/cmdline-tools \
     && rm /tmp/cmdline-tools.zip \
-    && mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
     && yes | sdkmanager --licenses \
-    && sdkmanager "platform-tools" "platforms;android-34" "build-tools;${ANDROID_BUILD_TOOLS_VERSION}"
+    && yes | sdkmanager "cmdline-tools;latest" \
+                        "platform-tools" \
+                        "platforms;android-34" \
+                        "build-tools;${ANDROID_BUILD_TOOLS_VERSION}"
 
 RUN git clone -b ${FLUTTER_CHANNEL} https://github.com/flutter/flutter.git ${FLUTTER_HOME} \
     && flutter config --no-analytics \
     && flutter precache \
     && flutter doctor -v
+
+RUN sudo chown -R $USERNAME:$USERNAME ${ANDROID_HOME} ${GRADLE_HOME} ${FLUTTER_HOME}
+
+RUN echo "export PATH=${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}:${JAVA_HOME}/bin:${FLUTTER_HOME}/bin:${GRADLE_HOME}/bin:\$PATH" \
+    | sudo tee /etc/profile.d/android.sh
