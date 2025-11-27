@@ -11,7 +11,8 @@ ENV JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
 ENV ANDROID_HOME=/usr/local/android-sdk
 ENV FLUTTER_HOME=/usr/local/flutter
 ENV GRADLE_HOME=/usr/local/gradle
-ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${JAVA_HOME}/bin:${FLUTTER_HOME}/bin:${GRADLE_HOME}/bin:${PATH}"
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Dorg.gradle.vfs.watch=false"
+ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/latest:${JAVA_HOME}/bin:${FLUTTER_HOME}/bin:${GRADLE_HOME}/bin:${PATH}"
 
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/bash \
@@ -43,14 +44,16 @@ RUN mkdir -p /tmp/android-sdk/cmdline-tools \
     && unzip -q /tmp/cmdline-tools.zip -d /tmp/android-sdk/cmdline-tools \
     && mv /tmp/android-sdk/cmdline-tools/cmdline-tools /tmp/android-sdk/cmdline-tools/latest \
     && rm /tmp/cmdline-tools.zip \
-    && yes | /tmp/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_HOME} --licenses \
-    && /tmp/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_HOME} "cmdline-tools;latest" "platform-tools" \
+    && mkdir -p ${ANDROID_HOME}/cmdline-tools \
+    && mv /tmp/android-sdk/cmdline-tools/latest ${ANDROID_HOME}/cmdline-tools/latest \
     && rm -rf /tmp/android-sdk \
-    && LATEST_BUILD_TOOLS=$(${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --list | grep "build-tools;" | grep -v "rc" | sort -V | tail -n 1 | cut -d '|' -f 1 | xargs) \
-    && ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "$LATEST_BUILD_TOOLS" "platforms;android-34" \
-    && echo "export PATH=\$PATH:${ANDROID_HOME}/build-tools/$(echo $LATEST_BUILD_TOOLS | cut -d ';' -f 2)" >> /home/$USERNAME/.bashrc
+    && yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses \
+    && ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
 RUN git clone -b ${FLUTTER_CHANNEL} https://github.com/flutter/flutter.git ${FLUTTER_HOME} \
+    && git config --global --add safe.directory ${FLUTTER_HOME} \
     && flutter config --no-analytics \
     && flutter precache \
     && flutter doctor -v
+
+RUN git config --global --add safe.directory '*'
